@@ -72,7 +72,7 @@ void ws2812b_update(uint32_t counter) {
  * HID/Reactive Lights
  **/
 void update_lights() {
-  for (int i = 0; i < LED_GPIO_SIZE; i++) {
+  for (int i = 0; i < LED_GPIO_SIZE - 1; i++) {
     if (time_us_64() - reactive_timeout_timestamp >= REACTIVE_TIMEOUT_MAX) {
       if (!gpio_get(SW_GPIO[i])) {
         gpio_put(LED_GPIO[i], 1);
@@ -84,6 +84,20 @@ void update_lights() {
         gpio_put(LED_GPIO[i], 0);
       } else {
         gpio_put(LED_GPIO[i], 1);
+      }
+    }
+    /* start button sw_val index is offset by two with respect to LED_GPIO */
+    if (time_us_64() - reactive_timeout_timestamp >= REACTIVE_TIMEOUT_MAX) {
+      if (!gpio_get(SW_GPIO[LED_GPIO_SIZE + 1])) {
+        gpio_put(LED_GPIO[LED_GPIO_SIZE - 1], 1);
+      } else {
+        gpio_put(LED_GPIO[LED_GPIO_SIZE - 1], 0);
+      }
+    } else {
+      if (lights_report.lights.buttons[LED_GPIO_SIZE - 1] == 0) {
+        gpio_put(LED_GPIO[LED_GPIO_SIZE - 1], 0);
+      } else {
+        gpio_put(LED_GPIO[LED_GPIO_SIZE - 1], 1);
       }
     }
   }
@@ -111,7 +125,7 @@ void joy_mode() {
     }
 
     report.joy0 = ((double)cur_enc_val[0] / ENC_PULSE) * (UINT8_MAX + 1);
-    report.joy1 = ((double)cur_enc_val[1] / ENC_PULSE) * (UINT8_MAX + 1);
+    report.joy1 = (127);
 
     tud_hid_n_report(0x00, REPORT_ID_JOYSTICK, &report, sizeof(report));
   }
@@ -148,8 +162,8 @@ void key_mode() {
         prev_enc_val[i] = enc_val[i];
       }
 
-      tud_hid_mouse_report(REPORT_ID_MOUSE, 0x00, delta[0] * MOUSE_SENS,
-                           delta[1] * MOUSE_SENS, 0, 0);
+      tud_hid_mouse_report(REPORT_ID_MOUSE, 0x00, delta[0] * MOUSE_SENS, 0, 0,
+                           0);
     }
     // Alternate reports
     kbm_report = !kbm_report;
